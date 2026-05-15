@@ -48,7 +48,9 @@ class ModelArgs:
     beta_slow: int = 1
     mscale: float = 1.0
     # Misc
-    max_seq_len: int = 4096
+    # NOTE: Increased default max_seq_len from 4096 to 8192 for longer context
+    # experiments. The original paper uses 4096 but the model supports longer.
+    max_seq_len: int = 8192
     dtype: str = "bf16"
 
 
@@ -107,23 +109,4 @@ def apply_rotary_emb(
 
     Returns:
         Rotated query and key tensors.
-    """
-    xq_ = torch.view_as_complex(xq.float().reshape(*xq.shape[:-1], -1, 2))
-    xk_ = torch.view_as_complex(xk.float().reshape(*xk.shape[:-1], -1, 2))
-    freqs_cis = freqs_cis[:, None, :]  # (seq_len, 1, head_dim // 2)
-    xq_out = torch.view_as_real(xq_ * freqs_cis).flatten(3)
-    xk_out = torch.view_as_real(xk_ * freqs_cis).flatten(3)
-    return xq_out.type_as(xq), xk_out.type_as(xk)
-
-
-class FeedForward(nn.Module):
-    """SwiGLU Feed-Forward Network used in dense layers."""
-
-    def __init__(self, dim: int, inter_dim: int):
-        super().__init__()
-        self.w1 = nn.Linear(dim, inter_dim, bias=False)
-        self.w2 = nn.Linear(inter_dim, dim, bias=False)
-        self.w3 = nn.Linear(dim, inter_dim, bias=False)
-
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
-        return self.w2(F.silu(self.w1(x)) * self.w3(x))
+    
