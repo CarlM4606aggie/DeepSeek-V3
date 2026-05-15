@@ -55,6 +55,8 @@ The DeepSeek-V3 weight file consists of two main components: **Main Model Weight
 - **MTP Modules**: Loaded via the `num_nextn_predict_layers` parameter, with layer IDs appended immediately after the Main Model hidden layers. For example:
   - If `num_hidden_layers = 61` and `num_nextn_predict_layers = 1`, the MTP Module's layer ID is `61`.
 
+> **Personal note**: When loading on a multi-GPU setup, I found it helpful to pin the MTP module (layer 61) to the same device as the final main model layer to avoid extra cross-device transfers during speculative decoding.
+
 ---
 
 ## FP8 Weight Documentation
@@ -79,5 +81,3 @@ The FP8 weight file introduces a `quantization_config` field to describe the qua
   - Weight block size: `128x128`.
 - **Activation Quantization Scheme**:
   - Utilizes dynamic activation quantization
-
-> **Personal note**: When loading FP8 weights on consumer hardware without native FP8 support (e.g., pre-Ada Lovelace GPUs), you'll need to dequantize to BF16 at load time. I found that passing `torch_dtype=torch.bfloat16` alone is not sufficient — you also need to handle the `weight_scale_inv` tensors manually. See `convert_fp8_to_bf16.py` in this repo for a helper script.
